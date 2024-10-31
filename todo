@@ -1,0 +1,19 @@
+- setup materialized view and decide on paging?
+- register the feed / set it up
+- get a dedicated server for hosting
+- setup up reverse proxy so that I can host both feed and pds at same url
+- clean up codes
+- publish to github
+- promoto feed
+- create topic based feeds that use the score mechanism under the hood
+- develop a clean up job of un-used data
+- docker and deployment
+- tests
+- monitoring, promethiues?
+- personal website?
+
+Feed types:
+Trending 24
+Trending Weekly
+Trending Monthly
+   

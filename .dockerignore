@@ -1,0 +1,6 @@
+dist
+.vscode
+.devcontainer
+node_modules
+drizzle
+scripts/publishFeedGen.ts
