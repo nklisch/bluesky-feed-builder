@@ -7,8 +7,6 @@ jobs:
   docker:
     name: Build Dev container
     runs-on: ubuntu-latest
-    env:
-      REPO: ${{ secrets.REPO }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node 20
