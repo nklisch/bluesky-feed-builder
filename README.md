@@ -12,9 +12,36 @@ This project is based on the [AT Protocol feed generator template](https://githu
 - Ability to create feeds that are associated with topics through the interface
 
 ## Development
-Fill out onces workflow is more established.
+1. Configure .env file per example .env file
+
+2. Start db service
+```shell
+$ docker compose up db -d
+```
+3. Install modules with yarn
+```shell
+$ yarn install
+```
+
+4. Migrate database with drizzle
+```shell
+$ yarn drizzle-kit migrate
+```
+
+5. Start service or build and start docker container
+```shell
+$ yarn start
+```
+```
+$ docker compose up -d --build
+```
+
 ## Deployment
-Details deployment steps.
+1. Open a PR to `release` branch of github repo.
+2. Merge PR, this kicks off a GitHub action that builds a new image.
+3. Sync you docker data and restart your local service.
+- Use [watchtower](https://github.com/containrrr/watchtower) for automatic container updates
+
 Will be using Docker, with GitHub actions and Watchtower to trigger updates of my changes and automatically deploy to my server.
 ## Design & Algorithm
 There are basically three main points of consideration with a feed generator:
