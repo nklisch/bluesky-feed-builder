@@ -16,31 +16,32 @@ This project is based on the [AT Protocol feed generator template](https://githu
 
 2. Start db service
 ```shell
-$ docker compose up db -d
+docker compose up db -d
 ```
 3. Install modules with yarn
 ```shell
-$ yarn install
+yarn install
 ```
 
 4. Migrate database with drizzle
 ```shell
-$ yarn drizzle-kit migrate
+yarn drizzle-kit migrate
 ```
 
 5. Start service or build and start docker container
 ```shell
-$ yarn start
+yarn start
 ```
-```
-$ docker compose up -d --build
+```shell
+docker compose up -d --build
 ```
 
 ## Deployment
 1. Open a PR to `release` branch of github repo.
 2. Merge PR, this kicks off a GitHub action that builds a new image.
 3. Sync you docker data and restart your local service.
-- Use [watchtower](https://github.com/containrrr/watchtower) for automatic container updates
+4. Use the [docker compose file](./deploy/compose.yml) in `deploy` folder that has [watchtower](https://github.com/containrrr/watchtower) for automatic container updates. 
+    - Currently it is setup to trigger off of a push from my docker repository. I'd recommend removing this configuration and using a schedule as you wont have access to the access token I use.
 
 Will be using Docker, with GitHub actions and Watchtower to trigger updates of my changes and automatically deploy to my server.
 ## Design & Algorithm
