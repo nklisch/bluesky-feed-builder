@@ -1,6 +1,6 @@
 import { and, desc, eq, getTableColumns, gt, isNotNull, lt, sql } from "drizzle-orm";
-import { bigint, boolean, getMaterializedViewConfig, index, pgMaterializedView, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
-import { log, PostgresInterval, interval, TimeUnit, calculateTimeUnitMultiplier, SmallTimeUnit } from "./sql";
+import { bigint, boolean, index, pgMaterializedView, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { PostgresInterval, interval, calculateTimeUnitMultiplier, SmallTimeUnit } from "./sql";
 import { Language, LanguageCodes } from "../util/language";
 import { Timezones } from "./timezone";
 export const posts = pgTable(
@@ -41,12 +41,13 @@ interface TrendingViewProps {
   quoteWeight: number;
   language: Language;
   scoreDecayUnit: SmallTimeUnit;
-  totalRecords: number;
+  totalScannedRecords: number;
+  finalViewRecords: number;
   decayStrength: number;
 }
 
 function createTrendingView(props: TrendingViewProps) {
-  const { decayStrength, duration, likeWeight, repliesWeight, repostsWeight, quoteWeight, language, scoreDecayUnit, totalRecords, nameSuffix } = props;
+  const { decayStrength, duration, likeWeight, repliesWeight, repostsWeight, quoteWeight, language, scoreDecayUnit, totalScannedRecords, finalViewRecords, nameSuffix } = props;
   return pgMaterializedView(`trendingPosts${nameSuffix}`).as((qb) => {
     const scored = qb.$with("scored").as(
       qb
@@ -58,7 +59,7 @@ function createTrendingView(props: TrendingViewProps) {
         .from(posts)
         .where(and(isNotNull(posts.touchedAt), gt(posts.indexedAt, sql`NOW() AT TIME ZONE ${Timezones['Universal Time, Coordinated']} - ${interval(duration)}`), eq(posts.locale, LanguageCodes[language])))
         .orderBy(desc(posts.touchedAt))
-        .limit(totalRecords)
+        .limit(totalScannedRecords)
     );
     const {cid, uri, likes, replies, reposts, quotereposts } = scored;
     return qb.with(scored).select({
@@ -71,7 +72,8 @@ function createTrendingView(props: TrendingViewProps) {
         curser: sql`ROW_NUMBER() OVER (ORDER BY "decayedScore" DESC)`.as('curser'),
     }
     ).from(scored)
-    .orderBy(desc(sql`"decayedScore"`));
+    .orderBy(desc(sql`"decayedScore"`))
+    .limit(finalViewRecords);
   });
   
 }
@@ -85,7 +87,8 @@ export const trending24 = createTrendingView({
   repostsWeight: 0.5,
   quoteWeight: 6,
   scoreDecayUnit: 'minute',
-  totalRecords: 100_000,
+  totalScannedRecords: 100_000,
+  finalViewRecords: 10_000,
   nameSuffix: '24'
 });
 
@@ -98,7 +101,8 @@ export const trendingWeekly = createTrendingView({
   repostsWeight: 0.5,
   quoteWeight: 6,
   scoreDecayUnit: 'hour',
-  totalRecords: 100_000,
+  totalScannedRecords: 100_000,
+  finalViewRecords: 10_000,
   nameSuffix: 'Weekly'
 })
 
@@ -111,7 +115,8 @@ export const trendingMonthly = createTrendingView({
   repostsWeight: 0.5,
   quoteWeight: 6,
   scoreDecayUnit: 'day',
-  totalRecords: 100_000,
+  totalScannedRecords: 100_000,
+  finalViewRecords: 10_000,
   nameSuffix: 'Monthly'
 })
 

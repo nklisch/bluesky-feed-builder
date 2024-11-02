@@ -1,5 +1,5 @@
 {
-  "id": "69ed4960-bc1d-4037-9634-a4f0b1cee8bb",
+  "id": "2209a6d8-482a-463d-88d6-66e8d49b4109",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -189,7 +189,7 @@
           "default": 0
         }
       },
-      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.0001 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (60000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval'1 day' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc",
+      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.0001 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (60000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval'1 day' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc limit 10000",
       "name": "trendingPosts24",
       "schema": "public",
       "isExisting": false,
@@ -238,7 +238,7 @@
           "default": 0
         }
       },
-      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.01 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (86400000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval'1 month' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc",
+      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.01 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (86400000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval'1 month' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc limit 10000",
       "name": "trendingPostsMonthly",
       "schema": "public",
       "isExisting": false,
@@ -287,7 +287,7 @@
           "default": 0
         }
       },
-      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.001 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (3600000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval'7 days' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc",
+      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.001 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (3600000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval'7 days' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc limit 10000",
       "name": "trendingPostsWeekly",
       "schema": "public",
       "isExisting": false,

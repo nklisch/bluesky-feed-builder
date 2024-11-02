@@ -28,5 +28,16 @@ services:
       - FEEDGEN_SUBSCRIPTION_RECONNECT_DELAY=$FEEDGEN_SUBSCRIPTION_RECONNECT_DELAY
     networks:
       - atprotofeed
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --http-api-update
+    environment:
+      - WATCHTOWER_REMOVE_VOLUMES=true
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_HTTP_API_TOKEN=$WATCHTOWER_HTTP_API_TOKEN
+    ports:
+      - 8888:8080
 networks:
   atprotofeed:
