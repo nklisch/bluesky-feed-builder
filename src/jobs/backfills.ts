@@ -51,6 +51,7 @@ export async function backfillPosts(db: Database, atAgent: AtpAgent) {
               reposts: post.repostCount ?? 0,
               quotereposts: post.quoteCount ?? 0,
               locale: hasLanguage(post.record as PostRecord, "English") ? "en" : undefined,
+              indexedAt: new Date(post.indexedAt)
             })
             .where(eq(posts.uri, post.uri))
             .catch((error) => {

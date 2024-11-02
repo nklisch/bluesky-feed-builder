@@ -19,9 +19,9 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - 9000:${FEEDGEN_PORT}
+      - 9000:${FEEDGEN_PORT} # Map the service port to the host
     environment:
-      - DATABASE_URL=$DATABASE_URL
+      - DATABASE_URL=$DOCKER_DATABASE_URL
       - FEEDGEN_SUBSCRIPTION_ENDPOINT=$FEEDGEN_SUBSCRIPTION_ENDPOINT
       - FEEDGEN_HOSTNAME=$FEEDGEN_HOSTNAME
       - FEEDGEN_PUBLISHER_DID=$FEEDGEN_PUBLISHER_DID
