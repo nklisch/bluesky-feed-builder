@@ -42,6 +42,6 @@ networks:
   postgres:
     driver: bridge
     attachable: true
-networks:
   caddy_caddy:
     external: true
+  
