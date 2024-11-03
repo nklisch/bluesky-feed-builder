@@ -17,3 +17,11 @@ jobs:
         run: docker build -t $REPO:latest -t $REPO:${GITHUB_SHA::8} .
       - name: Publish Docker image
         run: docker push $REPO:latest
+      - name: Wait some time
+        run: sleep 15s
+      - name: Webhook Action
+        run: |
+          curl -H "Authorization: Bearer ${{ secrets.WEBHOOK_TOKEN }}" ${{ secrets.WEBHOOK_URL }}
+
+        
+            

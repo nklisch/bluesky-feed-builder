@@ -1,5 +1,5 @@
 services:
-  db:
+  postgres:
     image: postgres:17-bullseye
     restart: always
     environment:
@@ -7,16 +7,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_DB: ${POSTGRES_DB}
       PGDATA: /var/lib/postgressql/data/pgdata
-    ports:
-      - ${POSTGRES_PORT}:5432
     volumes:
       - ${PG_VOLUME}:/var/lib/postgressql/data/pgdata
+    ports:
+      - ${POSTGRES_PORT}:5432
     networks:
-      - atprotofeed
+      - postgres
   feedgen:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: nklisch/bluesky-feed-builder:latest
     restart: always
     ports:
       - 9000:${FEEDGEN_PORT} # Map the service port to the host
@@ -27,7 +25,8 @@ services:
       - FEEDGEN_PUBLISHER_DID=$FEEDGEN_PUBLISHER_DID
       - FEEDGEN_SUBSCRIPTION_RECONNECT_DELAY=$FEEDGEN_SUBSCRIPTION_RECONNECT_DELAY
     networks:
-      - atprotofeed
+      - postgres
+      - caddy_caddy
   watchtower:
     image: containrrr/watchtower
     volumes:
@@ -40,4 +39,9 @@ services:
     ports:
       - 8888:8080
 networks:
-  atprotofeed:
+  postgres:
+    driver: bridge
+    attachable: true
+  caddy_caddy:
+    external: true
+  

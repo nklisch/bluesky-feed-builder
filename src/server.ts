@@ -1,5 +1,5 @@
-import http from "node:http";
-import events from "node:events";
+import http from "http";
+import events from "events";
 import express from "express";
 import { DidResolver, MemoryCache } from "@atproto/identity";
 import { createServer } from "./lexicons/index";
