@@ -1,4 +1,4 @@
-FROM node:bullseye AS deps
+FROM node:22-alpine AS deps
 LABEL description="Bluesky Trending Feed"
 
 WORKDIR /app
@@ -8,7 +8,7 @@ RUN apk add --no-cache yarn
 RUN yarn install --frozen-lockfile
 
 ##### BUILDER
-FROM node:bullseye AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -16,7 +16,7 @@ RUN SKIP_ENV_VALIDATION=1 yarn build
 RUN yarn install --production --frozen-lockfile
 
 ##### RUNNER
-FROM node:bullseye AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV FEEDGEN_LISTENHOST="localhost"
 ENV FEEDGEN_PORT=${FEEDGEN_PORT:-9000}
