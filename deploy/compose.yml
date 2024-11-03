@@ -9,12 +9,12 @@ services:
       PGDATA: /var/lib/postgressql/data/pgdata
     volumes:
       - ${PG_VOLUME}:/var/lib/postgressql/data/pgdata
+    ports:
+      - ${POSTGRES_PORT}:5432
     networks:
       - postgres
   feedgen:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: nklisch/bluesky-feed-builder:latest
     restart: always
     ports:
       - 9000:${FEEDGEN_PORT} # Map the service port to the host
