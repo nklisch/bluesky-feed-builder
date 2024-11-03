@@ -10,7 +10,7 @@ services:
     volumes:
       - ${PG_VOLUME}:/var/lib/postgressql/data/pgdata
     networks:
-      - atprotofeed
+      - postgres
   feedgen:
     build:
       context: .
