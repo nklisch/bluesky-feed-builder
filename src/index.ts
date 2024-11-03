@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import FeedGenerator from "./server";
 import logger from "./logger";
-import process from "node:process";
+import process from "process";
 
 globalThis.logger = logger;
 

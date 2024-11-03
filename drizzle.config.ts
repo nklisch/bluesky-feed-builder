@@ -1,5 +1,5 @@
 import { defineConfig } from "drizzle-kit";
-import process from "node:process";
+import process from "process";
 
 export default defineConfig({
   dialect: "postgresql",

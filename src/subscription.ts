@@ -6,7 +6,7 @@ import { eq, inArray } from "drizzle-orm";
 import { addOnUpdate, increment } from "./db/sql";
 import { Database } from "./db/index";
 import { hasLanguage } from "./util/language";
-import process from "node:process";
+import process from "process";
 
 const repostType = "app.bsky.embed.record" as const;
 

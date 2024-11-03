@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema";
-import process from "node:process";
+import process from "process";
 
 export const createDb = () =>
   // @ts-ignore // Drizzle has a typescript error at the moment.
