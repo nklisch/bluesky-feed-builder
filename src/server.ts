@@ -13,6 +13,9 @@ import { AtpAgent } from "@atproto/api";
 import cron from "node-cron";
 import { backfillPosts } from "./jobs/backfills";
 import { pinoHttp } from "pino-http";
+import { cleanupPosts } from "./jobs/cleanup";
+import { refreshViews } from "./jobs/refresh";
+import { trending24, trendingMonthly, trendingWeekly } from "./db/schema";
 
 export class FeedGenerator {
   public server?: http.Server;
@@ -67,12 +70,9 @@ export class FeedGenerator {
 
   crons() {
     try {
-      cron.schedule("*/10 * * * *", () =>
-        backfillPosts(this.db, this.atAgent)
-          .then()
-          .catch((error) => {
-            logger.info(error);
-          }));
+      cron.schedule("*/10 * * * *", () => backfillPosts(this.db, this.atAgent).then());
+      cron.schedule("0 0 * * 0", () => cleanupPosts(this.db).then());
+      cron.schedule("*/15 * * * *", () => refreshViews(this.db, [trending24, trendingWeekly, trendingMonthly]).then());
     } catch (error) {
       logger.info(error, "Cron job failure");
     }
