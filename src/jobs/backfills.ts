@@ -20,11 +20,7 @@ export async function backfillPosts(db: Database, atAgent: AtpAgent) {
       },
       orderBy: [desc(posts.touchedAt)],
       limit: MAX_POSTS_TO_HYDRATE,
-      where: and(
-        isNotNull(posts.touchedAt),
-        eq(posts.hydrated, false),
-        gte(posts.indexedAt, subDays(new Date(), 1)),
-      ),
+      where: and(isNotNull(posts.touchedAt), eq(posts.hydrated, false), gte(posts.indexedAt, subDays(new Date(), 1))),
     });
     if (uris.length === 0) {
       logger.info(`No posts to hydrate. Exiting.`);
@@ -51,7 +47,7 @@ export async function backfillPosts(db: Database, atAgent: AtpAgent) {
               reposts: post.repostCount ?? 0,
               quotereposts: post.quoteCount ?? 0,
               locale: hasLanguage(post.record as PostRecord, "English") ? "en" : undefined,
-              indexedAt: new Date(post.indexedAt)
+              indexedAt: new Date(post.indexedAt),
             })
             .where(eq(posts.uri, post.uri))
             .catch((error) => {
@@ -75,19 +71,14 @@ export async function backfillPosts(db: Database, atAgent: AtpAgent) {
       }
       const fetchRateLimited = async () => {
         await limiter.removeTokens(1);
-        return await atAgent.getPosts({ uris: uriChunk.map((u) => u.uri) })
-          .catch((error) => {
-            logger.error(
-              error,
-              `getPosts failed for %d error.`,
-              uriChunk.length,
-            );
-            return {
-              data: { posts: [] },
-              success: true,
-              headers: {},
-            };
-          });
+        return await atAgent.getPosts({ uris: uriChunk.map((u) => u.uri) }).catch((error) => {
+          logger.error(error, `getPosts failed for %d error.`, uriChunk.length);
+          return {
+            data: { posts: [] },
+            success: true,
+            headers: {},
+          };
+        });
       };
       promises.push(fetchRateLimited());
     }

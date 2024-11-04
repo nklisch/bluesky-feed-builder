@@ -15,8 +15,7 @@ function reducePosts(acc: InsertPost[], post: InsertPost): InsertPost[] {
   if (existingPost) {
     existingPost.likes = (existingPost.likes ?? 0) + (post.likes ?? 0);
     existingPost.replies = (existingPost.replies ?? 0) + (post.replies ?? 0);
-    existingPost.quotereposts = (existingPost.quotereposts ?? 0) +
-      (post.quotereposts ?? 0);
+    existingPost.quotereposts = (existingPost.quotereposts ?? 0) + (post.quotereposts ?? 0);
     existingPost.reposts = (existingPost.reposts ?? 0) + (post.reposts ?? 0);
   } else {
     acc.push({
@@ -31,10 +30,7 @@ function reducePosts(acc: InsertPost[], post: InsertPost): InsertPost[] {
 }
 
 export class FirehoseSubscription extends FirehoseSubscriptionBase {
-  constructor(
-    db: Database,
-    service: string,
-  ) {
+  constructor(db: Database, service: string) {
     super(db, service);
     this.handleExit();
   }
@@ -85,10 +81,7 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
               likes: increment(posts.likes, post.likes ?? 0),
               replies: increment(posts.replies, post.replies ?? 0),
               reposts: increment(posts.reposts, post.reposts ?? 0),
-              quotereposts: increment(
-                posts.quotereposts,
-                post.quotereposts ?? 0,
-              ),
+              quotereposts: increment(posts.quotereposts, post.quotereposts ?? 0),
               touchedAt: Date.now(),
             })
             .where(eq(posts.uri, post.uri)),
@@ -107,23 +100,11 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
     const ops = await getOpsByType(evt);
 
     for (const like of ops.likes.creates) {
-      modifyCount(
-        like.record.subject,
-        1,
-        "likes",
-        this.postsToCreate,
-        this.postsToUpdate,
-      );
+      modifyCount(like.record.subject, 1, "likes", this.postsToCreate, this.postsToUpdate);
     }
 
     for (const repost of ops.reposts.creates) {
-      modifyCount(
-        repost.record.subject,
-        1,
-        "reposts",
-        this.postsToCreate,
-        this.postsToUpdate,
-      );
+      modifyCount(repost.record.subject, 1, "reposts", this.postsToCreate, this.postsToUpdate);
     }
 
     for (const post of ops.posts.creates) {
@@ -132,32 +113,14 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
       }
       const replies = post.record.reply?.root;
       if (replies) {
-        modifyCount(
-          replies,
-          1,
-          "replies",
-          this.postsToCreate,
-          this.postsToUpdate,
-        );
+        modifyCount(replies, 1, "replies", this.postsToCreate, this.postsToUpdate);
         continue;
       }
       if (post.record.embed?.$type === repostType) {
         const quoterepost = (post.record.embed as AppBskyEmbedRecord.Main).record;
-        modifyCount(
-          quoterepost,
-          1,
-          "quotereposts",
-          this.postsToCreate,
-          this.postsToUpdate,
-        );
+        modifyCount(quoterepost, 1, "quotereposts", this.postsToCreate, this.postsToUpdate);
       }
-      modifyCount(
-        { ...post, locale: "en" },
-        0,
-        "quotereposts",
-        this.postsToCreate,
-        this.postsToUpdate,
-      );
+      modifyCount({ ...post, locale: "en" }, 0, "quotereposts", this.postsToCreate, this.postsToUpdate);
     }
 
     for (const post of ops.posts.deletes) {

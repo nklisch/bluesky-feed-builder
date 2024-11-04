@@ -39,8 +39,7 @@ const run = async () => {
   if (!process.env.FEEDGEN_SERVICE_DID && !process.env.FEEDGEN_HOSTNAME) {
     throw new Error("Please provide a hostname in the .env file");
   }
-  const feedGenDid = process.env.FEEDGEN_SERVICE_DID ??
-    `did:web:${process.env.FEEDGEN_HOSTNAME}`;
+  const feedGenDid = process.env.FEEDGEN_SERVICE_DID ?? `did:web:${process.env.FEEDGEN_HOSTNAME}`;
 
   // only update this if in a test environment
   const agent = new AtpAgent({ service: "https://bsky.social" });

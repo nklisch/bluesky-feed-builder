@@ -177,8 +177,5 @@ export const LanguageRegex = {
 } as const;
 
 export function hasLanguage(post: PostRecord, language: Language): boolean {
-  return Boolean(
-    !post.langs?.length ||
-      post.langs?.find((value) => value.match(LanguageRegex[language])),
-  );
+  return Boolean(!post.langs?.length || post.langs?.find((value) => value.match(LanguageRegex[language])));
 }

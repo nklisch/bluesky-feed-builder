@@ -20,8 +20,7 @@ export const posts = pgTable(
     locale: varchar({ length: 8 }),
   },
   (table) => {
-    return [index("indexedAtIndex").on(table.indexedAt.desc()).concurrently(),
-       index("touchedAtIndex").on(table.touchedAt.desc()).concurrently()]
+    return [index("indexedAtIndex").on(table.indexedAt.desc()).concurrently(), index("touchedAtIndex").on(table.touchedAt.desc()).concurrently()];
   },
 );
 
@@ -33,7 +32,7 @@ export const subscriptionStates = pgTable("subscriptionState", {
 });
 
 interface TrendingViewProps {
-  nameSuffix: string
+  nameSuffix: string;
   duration: PostgresInterval;
   likeWeight: number;
   repliesWeight: number;
@@ -53,70 +52,78 @@ function createTrendingView(props: TrendingViewProps) {
       qb
         .select({
           ...getTableColumns(posts),
-          decayedScore: 
-            sql`log(${posts.likes}*${likeWeight} + ${posts.replies}*${repliesWeight} + ${posts.reposts}*${repostsWeight} + ${posts.quotereposts}*${quoteWeight} + 1) * EXP(${decayStrength} * ((EXTRACT(EPOCH FROM NOW()) * 1000) - ${posts.touchedAt})  / (${calculateTimeUnitMultiplier('millisecond', scoreDecayUnit)}) *(RANDOM()*10 + 0.001))`.as('decayedScore')
+          decayedScore:
+            sql`log(${posts.likes}*${likeWeight} + ${posts.replies}*${repliesWeight} + ${posts.reposts}*${repostsWeight} + ${posts.quotereposts}*${quoteWeight} + 1) * EXP(${decayStrength} * ((EXTRACT(EPOCH FROM NOW()) * 1000) - ${posts.touchedAt})  / (${calculateTimeUnitMultiplier("millisecond", scoreDecayUnit)}) *(RANDOM()*10 + 0.001))`.as(
+              "decayedScore",
+            ),
         })
         .from(posts)
-        .where(and(isNotNull(posts.touchedAt), gt(posts.indexedAt, sql`NOW() AT TIME ZONE ${Timezones['Universal Time, Coordinated']} - ${interval(duration)}`), eq(posts.locale, LanguageCodes[language])))
+        .where(
+          and(
+            isNotNull(posts.touchedAt),
+            gt(posts.indexedAt, sql`NOW() AT TIME ZONE ${Timezones["Universal Time, Coordinated"]} - ${interval(duration)}`),
+            eq(posts.locale, LanguageCodes[language]),
+          ),
+        )
         .orderBy(desc(posts.touchedAt))
-        .limit(totalScannedRecords)
+        .limit(totalScannedRecords),
     );
-    const {cid, uri, likes, replies, reposts, quotereposts } = scored;
-    return qb.with(scored).select({
+    const { cid, uri, likes, replies, reposts, quotereposts } = scored;
+    return qb
+      .with(scored)
+      .select({
         cid,
         uri,
-        likes, 
-        replies, 
-        reposts, 
+        likes,
+        replies,
+        reposts,
         quotereposts,
-        curser: sql`ROW_NUMBER() OVER (ORDER BY "decayedScore" DESC)`.as('curser'),
-    }
-    ).from(scored)
-    .orderBy(desc(sql`"decayedScore"`))
-    .limit(finalViewRecords);
+        curser: sql`ROW_NUMBER() OVER (ORDER BY "decayedScore" DESC)`.as("curser"),
+      })
+      .from(scored)
+      .orderBy(desc(sql`"decayedScore"`))
+      .limit(finalViewRecords);
   });
-  
 }
 
 export const trending24 = createTrendingView({
   decayStrength: -0.0001,
-  duration: {amount: 1, unit: 'day'},
-  language: 'English',
+  duration: { amount: 1, unit: "day" },
+  language: "English",
   likeWeight: 0.1,
   repliesWeight: 4,
   repostsWeight: 0.5,
   quoteWeight: 6,
-  scoreDecayUnit: 'minute',
+  scoreDecayUnit: "minute",
   totalScannedRecords: 100_000,
   finalViewRecords: 10_000,
-  nameSuffix: '24'
+  nameSuffix: "24",
 });
 
 export const trendingWeekly = createTrendingView({
   decayStrength: -0.001,
-  duration: {amount: 7, unit: 'day'},
-  language: 'English',
+  duration: { amount: 7, unit: "day" },
+  language: "English",
   likeWeight: 0.1,
   repliesWeight: 4,
   repostsWeight: 0.5,
   quoteWeight: 6,
-  scoreDecayUnit: 'hour',
+  scoreDecayUnit: "hour",
   totalScannedRecords: 100_000,
   finalViewRecords: 10_000,
-  nameSuffix: 'Weekly'
-})
+  nameSuffix: "Weekly",
+});
 
 export const trendingMonthly = createTrendingView({
   decayStrength: -0.01,
-  duration: {amount: 1, unit: 'month'},
-  language: 'English',
+  duration: { amount: 1, unit: "month" },
+  language: "English",
   likeWeight: 0.1,
   repliesWeight: 4,
   repostsWeight: 0.5,
   quoteWeight: 6,
-  scoreDecayUnit: 'day',
+  scoreDecayUnit: "day",
   totalScannedRecords: 100_000,
   finalViewRecords: 10_000,
-  nameSuffix: 'Monthly'
-})
-
+  nameSuffix: "Monthly",
+});

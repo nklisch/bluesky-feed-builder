@@ -24,10 +24,7 @@ export abstract class FirehoseSubscriptionBase {
       getParams: () => this.getCursor(),
       validate: (value: unknown) => {
         try {
-          return lexicons.assertValidXrpcMessage<RepoEvent>(
-            ids.ComAtprotoSyncSubscribeRepos,
-            value,
-          );
+          return lexicons.assertValidXrpcMessage<RepoEvent>(ids.ComAtprotoSyncSubscribeRepos, value);
         } catch (err) {
           logger.error(err, "repo subscription skipped invalid message");
         }
@@ -52,10 +49,7 @@ export abstract class FirehoseSubscriptionBase {
       }
     } catch (err) {
       logger.error(err, "repo subscription errored");
-      setTimeout(
-        () => this.run(subscriptionReconnectDelay),
-        subscriptionReconnectDelay,
-      );
+      setTimeout(() => this.run(subscriptionReconnectDelay), subscriptionReconnectDelay);
     }
   }
 

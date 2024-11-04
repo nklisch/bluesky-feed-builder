@@ -2,11 +2,7 @@ import express from "express";
 import { AuthRequiredError, parseReqNsid, verifyJwt } from "@atproto/xrpc-server";
 import { DidResolver } from "@atproto/identity";
 
-export const validateAuth = async (
-  req: express.Request,
-  serviceDid: string,
-  didResolver: DidResolver,
-): Promise<string> => {
+export const validateAuth = async (req: express.Request, serviceDid: string, didResolver: DidResolver): Promise<string> => {
   const { authorization = "" } = req.headers;
   if (!authorization.startsWith("Bearer ")) {
     throw new AuthRequiredError();
