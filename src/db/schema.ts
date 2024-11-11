@@ -78,7 +78,7 @@ function createTrendingView(props: TrendingViewProps) {
         replies,
         reposts,
         quotereposts,
-        curser: sql`ROW_NUMBER() OVER (ORDER BY "decayedScore" DESC)`.as("curser"),
+        curser: sql<number>`ROW_NUMBER() OVER (ORDER BY "decayedScore" DESC)`.as("curser"),
       })
       .from(scored)
       .orderBy(desc(sql`"decayedScore"`))
