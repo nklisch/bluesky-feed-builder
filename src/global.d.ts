@@ -1,7 +1,7 @@
-import pino from "pino";
+import { Logger } from "pino";
 
 declare global {
-  var logger: pino.Logger;
+  var logger: Logger;
 }
 
 export {};

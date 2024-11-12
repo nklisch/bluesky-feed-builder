@@ -18,7 +18,7 @@ RUN yarn install --production --frozen-lockfile
 ##### RUNNER
 FROM node:22-alpine AS runner
 WORKDIR /app
-ENV FEEDGEN_LISTENHOST="localhost"
+ENV FEEDGEN_LISTENHOST="0.0.0.0"
 ENV FEEDGEN_PORT=${FEEDGEN_PORT:-9000}
 
 RUN addgroup --system --gid 1001 nodejs
