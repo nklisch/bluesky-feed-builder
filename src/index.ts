@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import FeedGenerator from "./server";
 import logger from "./logger";
 import process from "process";
+import "express-async-errors";
 
 globalThis.logger = logger;
 
