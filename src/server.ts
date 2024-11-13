@@ -70,7 +70,7 @@ export class FeedGenerator {
 
   crons() {
     try {
-      cron.schedule("*/10 * * * *", () => backfillPosts(this.db, this.atAgent).then());
+      //cron.schedule("*/10 * * * *", () => backfillPosts(this.db, this.atAgent).then());
       cron.schedule("0 0 * * 0", () => cleanupPosts(this.db).then());
       cron.schedule("*/15 * * * *", () => refreshViews(this.db, [trending24, trendingWeekly, trendingMonthly]).then());
     } catch (error) {
