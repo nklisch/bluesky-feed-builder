@@ -86,6 +86,20 @@ function createTrendingView(props: TrendingViewProps) {
   });
 }
 
+export const trendingHourly = createTrendingView({
+  decayStrength: -0.0001,
+  duration: { amount: 1, unit: "hour" },
+  language: "English",
+  likeWeight: 0.1,
+  repliesWeight: 4,
+  repostsWeight: 0.5,
+  quoteWeight: 6,
+  scoreDecayUnit: "second",
+  totalScannedRecords: 100_000,
+  finalViewRecords: 10_000,
+  nameSuffix: "Hourly",
+});
+
 export const trending24 = createTrendingView({
   decayStrength: -0.0001,
   duration: { amount: 1, unit: "day" },

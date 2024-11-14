@@ -1,0 +1,351 @@
+{
+  "id": "b98c8f19-55ae-40a4-aada-f65a8656416a",
+  "prevId": "2209a6d8-482a-463d-88d6-66e8d49b4109",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.posts": {
+      "name": "posts",
+      "schema": "",
+      "columns": {
+        "uri": {
+          "name": "uri",
+          "type": "varchar(8192)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cid": {
+          "name": "cid",
+          "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "likes": {
+          "name": "likes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "replies": {
+          "name": "replies",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "quotereposts": {
+          "name": "quotereposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "reposts": {
+          "name": "reposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "touchedAt": {
+          "name": "touchedAt",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "indexedAt": {
+          "name": "indexedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "hydrated": {
+          "name": "hydrated",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "locale": {
+          "name": "locale",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "indexedAtIndex": {
+          "name": "indexedAtIndex",
+          "columns": [
+            {
+              "expression": "indexedAt",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": true,
+          "method": "btree",
+          "with": {}
+        },
+        "touchedAtIndex": {
+          "name": "touchedAtIndex",
+          "columns": [
+            {
+              "expression": "touchedAt",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": true,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.subscriptionState": {
+      "name": "subscriptionState",
+      "schema": "",
+      "columns": {
+        "service": {
+          "name": "service",
+          "type": "varchar(1024)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cursor": {
+          "name": "cursor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {
+    "public.trendingPosts24": {
+      "columns": {
+        "cid": {
+          "name": "cid",
+          "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uri": {
+          "name": "uri",
+          "type": "varchar(8192)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "likes": {
+          "name": "likes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "replies": {
+          "name": "replies",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "reposts": {
+          "name": "reposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "quotereposts": {
+          "name": "quotereposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        }
+      },
+      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.0001 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (60000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval '1 day' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc limit 10000",
+      "name": "trendingPosts24",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": true
+    },
+    "public.trendingPostsHourly": {
+      "columns": {
+        "cid": {
+          "name": "cid",
+          "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uri": {
+          "name": "uri",
+          "type": "varchar(8192)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "likes": {
+          "name": "likes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "replies": {
+          "name": "replies",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "reposts": {
+          "name": "reposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "quotereposts": {
+          "name": "quotereposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        }
+      },
+      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.0001 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (1000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval '1 hour' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc limit 10000",
+      "name": "trendingPostsHourly",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": true
+    },
+    "public.trendingPostsMonthly": {
+      "columns": {
+        "cid": {
+          "name": "cid",
+          "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uri": {
+          "name": "uri",
+          "type": "varchar(8192)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "likes": {
+          "name": "likes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "replies": {
+          "name": "replies",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "reposts": {
+          "name": "reposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "quotereposts": {
+          "name": "quotereposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        }
+      },
+      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.01 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (86400000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval '1 month' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc limit 10000",
+      "name": "trendingPostsMonthly",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": true
+    },
+    "public.trendingPostsWeekly": {
+      "columns": {
+        "cid": {
+          "name": "cid",
+          "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uri": {
+          "name": "uri",
+          "type": "varchar(8192)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "likes": {
+          "name": "likes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "replies": {
+          "name": "replies",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "reposts": {
+          "name": "reposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "quotereposts": {
+          "name": "quotereposts",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        }
+      },
+      "definition": "with \"scored\" as (select \"uri\", \"cid\", \"likes\", \"replies\", \"quotereposts\", \"reposts\", \"touchedAt\", \"indexedAt\", \"hydrated\", \"locale\", log(\"likes\"*0.1 + \"replies\"*4 + \"reposts\"*0.5 + \"quotereposts\"*6 + 1) * EXP(-0.001 * ((EXTRACT(EPOCH FROM NOW()) * 1000) - \"touchedAt\")  / (3600000) *(RANDOM()*10 + 0.001)) as \"decayedScore\" from \"posts\" where (\"posts\".\"touchedAt\" is not null and \"posts\".\"indexedAt\" > NOW() AT TIME ZONE 'UTC' - interval '7 days' and \"posts\".\"locale\" = 'en') order by \"posts\".\"touchedAt\" desc limit 100000) select \"cid\", \"uri\", \"likes\", \"replies\", \"reposts\", \"quotereposts\", ROW_NUMBER() OVER (ORDER BY \"decayedScore\" DESC) as \"curser\" from \"scored\" order by \"decayedScore\" desc limit 10000",
+      "name": "trendingPostsWeekly",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": true
+    }
+  },
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
