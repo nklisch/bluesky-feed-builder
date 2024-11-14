@@ -47,6 +47,18 @@ const algos: Record<string, AlgoHandler> = {
       feed: view.map((r) => ({ post: r.uri, feedContext: "" })),
     };
   },
+  trendingHourly: async (ctx, { limit, cursor }) => {
+    const index = parseInt(cursor ?? "0");
+    const view = await ctx.db
+      .select()
+      .from(trendingMonthly)
+      .where(gte(trendingMonthly.curser, !index ? 0 : index))
+      .limit(limit);
+    return {
+      cursor: view[view.length - 1].curser.toString(),
+      feed: view.map((r) => ({ post: r.uri, feedContext: "" })),
+    };
+  },
 };
 
 export default algos;

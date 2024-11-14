@@ -108,7 +108,7 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
     }
 
     for (const post of ops.posts.creates) {
-      if (hasLanguage(post.record, "English")) {
+      if (!hasLanguage(post.record, "English")) {
         continue;
       }
       const replies = post.record.reply?.root;
