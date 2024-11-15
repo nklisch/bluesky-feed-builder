@@ -15,7 +15,7 @@ import { backfillPosts } from "./jobs/backfills";
 import { pinoHttp } from "pino-http";
 import { cleanupPosts } from "./jobs/cleanup";
 import { refreshViews } from "./jobs/refresh";
-import { trending24, trendingMonthly, trendingWeekly } from "./db/schema";
+import { trending24, trendingHourly, trendingMonthly, trendingWeekly } from "./db/schema";
 
 export class FeedGenerator {
   public server?: http.Server;
@@ -72,7 +72,10 @@ export class FeedGenerator {
     try {
       //cron.schedule("*/10 * * * *", () => backfillPosts(this.db, this.atAgent).then());
       cron.schedule("0 0 * * 0", () => cleanupPosts(this.db).then());
-      cron.schedule("*/15 * * * *", () => refreshViews(this.db, [trending24, trendingWeekly, trendingMonthly]).then());
+      cron.schedule("0/10 * * * *", () => refreshViews(this.db, [trendingHourly]).then());
+      cron.schedule("5/17 * * * *", () => refreshViews(this.db, [trending24]).then());
+      cron.schedule("0 */6 * * *", () => refreshViews(this.db, [trendingWeekly]).then());
+      cron.schedule("0 0 * * *", () => refreshViews(this.db, [trendingMonthly]).then());
     } catch (error) {
       logger.info(error, "Cron job failure");
     }
