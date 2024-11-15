@@ -9,7 +9,7 @@ export const posts = pgTable(
     uri: varchar({ length: 1024 * 8 })
       .primaryKey()
       .notNull(),
-    cid: varchar({ length: 1024 }).notNull(),
+    cid: varchar({ length: 1024 }),
     likes: bigint({ mode: "number" }).default(0),
     replies: bigint({ mode: "number" }).default(0),
     quotereposts: bigint({ mode: "number" }).default(0),

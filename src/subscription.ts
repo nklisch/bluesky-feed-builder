@@ -2,8 +2,8 @@ import { InsertPost, posts } from "./db/schema";
 import { isCommit, OutputSchema as RepoEvent } from "./lexicons/types/com/atproto/sync/subscribeRepos";
 import { FirehoseSubscriptionBase, getOpsByType } from "./util/subscription";
 import { AppBskyEmbedRecord } from "@atproto/api";
-import { eq, inArray } from "drizzle-orm";
-import { addOnUpdate, increment } from "./db/sql";
+import { inArray } from "drizzle-orm";
+import { addOnUpdate } from "./db/sql";
 import { Database } from "./db/index";
 import { hasLanguage } from "./util/language";
 import process from "process";
@@ -45,14 +45,13 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
     process.on("SIGTERM", exit);
   }
 
-  private readonly MAX_QUEUE_SIZE = 10000;
-  private postsToCreate: InsertPost[] = [];
-  private postsToUpdate: InsertPost[] = [];
+  private readonly MAX_QUEUE_SIZE = 100000;
+  private posts: InsertPost[] = [];
   private postsToDelete: string[] = [];
   async updateDb() {
-    if (this.postsToCreate.length > this.MAX_QUEUE_SIZE) {
-      let postsToCreate = [...this.postsToCreate];
-      this.postsToCreate = [];
+    if (this.posts.length > this.MAX_QUEUE_SIZE) {
+      let postsToCreate = [...this.posts];
+      this.posts = [];
       postsToCreate = postsToCreate.reduce<InsertPost[]>(reducePosts, []);
       await this.db
         .insert(posts)
@@ -68,27 +67,6 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
           target: posts.uri,
         });
     }
-    if (this.postsToUpdate.length > this.MAX_QUEUE_SIZE) {
-      let postsToUpdate = [...this.postsToUpdate];
-      this.postsToUpdate = [];
-      postsToUpdate = postsToUpdate.reduce<InsertPost[]>(reducePosts, []);
-      const promises: Promise<unknown>[] = [];
-      for (const post of postsToUpdate) {
-        promises.push(
-          this.db
-            .update(posts)
-            .set({
-              likes: increment(posts.likes, post.likes ?? 0),
-              replies: increment(posts.replies, post.replies ?? 0),
-              reposts: increment(posts.reposts, post.reposts ?? 0),
-              quotereposts: increment(posts.quotereposts, post.quotereposts ?? 0),
-              touchedAt: Date.now(),
-            })
-            .where(eq(posts.uri, post.uri)),
-        );
-      }
-      await Promise.all(promises);
-    }
     if (this.postsToDelete.length > this.MAX_QUEUE_SIZE) {
       const postsToDelete = [...this.postsToDelete];
       this.postsToDelete = [];
@@ -100,11 +78,11 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
     const ops = await getOpsByType(evt);
 
     for (const like of ops.likes.creates) {
-      modifyCount(like.record.subject, 1, "likes", this.postsToCreate, this.postsToUpdate);
+      modifyCount(like.record.subject, 1, "likes", this.posts);
     }
 
     for (const repost of ops.reposts.creates) {
-      modifyCount(repost.record.subject, 1, "reposts", this.postsToCreate, this.postsToUpdate);
+      modifyCount(repost.record.subject, 1, "reposts", this.posts);
     }
 
     for (const post of ops.posts.creates) {
@@ -113,14 +91,14 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
       }
       const replies = post.record.reply?.root;
       if (replies) {
-        modifyCount(replies, 1, "replies", this.postsToCreate, this.postsToUpdate);
+        modifyCount({ ...replies, locale: "en" }, 1, "replies", this.posts);
         continue;
       }
       if (post.record.embed?.$type === repostType) {
         const quoterepost = (post.record.embed as AppBskyEmbedRecord.Main).record;
-        modifyCount(quoterepost, 1, "quotereposts", this.postsToCreate, this.postsToUpdate);
+        modifyCount({ ...quoterepost, locale: "en" }, 1, "quotereposts", this.posts);
       }
-      modifyCount({ ...post, locale: "en" }, 0, "quotereposts", this.postsToCreate, this.postsToUpdate);
+      modifyCount({ ...post, locale: "en" }, 0, "quotereposts", this.posts);
     }
 
     for (const post of ops.posts.deletes) {
@@ -134,21 +112,12 @@ function modifyCount(
   { cid, uri, locale }: { cid?: string; uri: string; locale?: string },
   amount: number,
   column: "likes" | "replies" | "reposts" | "quotereposts",
-  postsToCreate: InsertPost[],
-  postsToUpdate: InsertPost[],
+  posts: InsertPost[],
 ) {
-  if (cid) {
-    postsToCreate.push({
-      cid,
-      uri,
-      [column]: amount,
-      locale,
-    });
-    return;
-  }
-  postsToUpdate.push({
+  posts.push({
     uri,
     cid: cid!,
     [column]: amount,
+    locale,
   });
 }
