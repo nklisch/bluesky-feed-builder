@@ -45,7 +45,7 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
     process.on("SIGTERM", exit);
   }
 
-  private readonly MAX_QUEUE_SIZE = 100000;
+  private readonly MAX_QUEUE_SIZE = 1000;
   private posts: InsertPost[] = [];
   private postsToDelete: string[] = [];
   async updateDb() {
