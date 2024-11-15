@@ -72,8 +72,8 @@ export class FeedGenerator {
     try {
       //cron.schedule("*/10 * * * *", () => backfillPosts(this.db, this.atAgent).then());
       cron.schedule("0 0 * * 0", () => cleanupPosts(this.db).then());
-      cron.schedule("0/10 * * * *", () => refreshViews(this.db, [trendingHourly]).then());
-      cron.schedule("0/17 * * * *", () => refreshViews(this.db, [trending24]).then());
+      cron.schedule("*/10 * * * *", () => refreshViews(this.db, [trendingHourly]).then());
+      cron.schedule("*/17 * * * *", () => refreshViews(this.db, [trending24]).then());
       cron.schedule("0 */6 * * *", () => refreshViews(this.db, [trendingWeekly]).then());
       cron.schedule("0 0 * * *", () => refreshViews(this.db, [trendingMonthly]).then());
     } catch (error) {
