@@ -91,12 +91,12 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
       }
       const replies = post.record.reply?.root;
       if (replies) {
-        modifyCount(replies, 1, "replies", this.posts);
+        modifyCount({ ...replies, locale: "en" }, 1, "replies", this.posts);
         continue;
       }
       if (post.record.embed?.$type === repostType) {
         const quoterepost = (post.record.embed as AppBskyEmbedRecord.Main).record;
-        modifyCount(quoterepost, 1, "quotereposts", this.posts);
+        modifyCount({ ...quoterepost, locale: "en" }, 1, "quotereposts", this.posts);
       }
       modifyCount({ ...post, locale: "en" }, 0, "quotereposts", this.posts);
     }
