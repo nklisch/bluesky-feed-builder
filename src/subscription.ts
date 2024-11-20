@@ -86,7 +86,7 @@ export class FirehoseSubscription extends JetstreamSubscriptionBase {
 
     if (ops?.post?.create) {
       const post = ops.post.create;
-      if (hasLanguage(post.record, "English")) {
+      if (!hasLanguage(post.record, "English")) {
         return;
       }
       const replies = post.record.reply?.root;
