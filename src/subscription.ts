@@ -1,12 +1,12 @@
-import { InsertPost, posts } from "./db/schema";
-import { isCommit, OutputSchema as RepoEvent } from "./lexicons/types/com/atproto/sync/subscribeRepos";
-import { FirehoseSubscriptionBase, getOpsByType } from "./util/subscription";
+import { InsertPost, posts as postsSchema } from "./db/schema";
+import { JetstreamSubscriptionBase, getOpsByType } from "./util/subscription";
 import { AppBskyEmbedRecord } from "@atproto/api";
 import { inArray } from "drizzle-orm";
 import { addOnUpdate } from "./db/sql";
 import { Database } from "./db/index";
 import { hasLanguage } from "./util/language";
 import process from "process";
+import { JetstreamEvent } from "./jetstream/jetstreamSubscription";
 
 const repostType = "app.bsky.embed.record" as const;
 
@@ -29,7 +29,7 @@ function reducePosts(acc: InsertPost[], post: InsertPost): InsertPost[] {
   return acc;
 }
 
-export class FirehoseSubscription extends FirehoseSubscriptionBase {
+export class FirehoseSubscription extends JetstreamSubscriptionBase {
   constructor(db: Database, service: string) {
     super(db, service);
     this.handleExit();
@@ -37,9 +37,8 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
 
   handleExit() {
     const exit = () => {
-      logger.warn("Service shutting down, saving queued records to database.");
-      this.updateDb();
-      process.exit(0);
+      logger.warn(`Service shutting down, saving ${this.posts.length} queued records to database.`);
+      this.updateDb().then(() => process.exit(0));
     };
     process.on("SIGINT", exit);
     process.on("SIGTERM", exit);
@@ -54,54 +53,54 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
       this.posts = [];
       postsToCreate = postsToCreate.reduce<InsertPost[]>(reducePosts, []);
       await this.db
-        .insert(posts)
+        .insert(postsSchema)
         .values(postsToCreate)
         .onConflictDoUpdate({
           set: {
-            likes: addOnUpdate(posts.likes),
-            quotereposts: addOnUpdate(posts.quotereposts),
-            replies: addOnUpdate(posts.replies),
-            reposts: addOnUpdate(posts.reposts),
+            likes: addOnUpdate(postsSchema.likes),
+            quotereposts: addOnUpdate(postsSchema.quotereposts),
+            replies: addOnUpdate(postsSchema.replies),
+            reposts: addOnUpdate(postsSchema.reposts),
             touchedAt: Date.now(),
           },
-          target: posts.uri,
+          target: postsSchema.uri,
         });
     }
     if (this.postsToDelete.length > this.MAX_QUEUE_SIZE) {
       const postsToDelete = [...this.postsToDelete];
       this.postsToDelete = [];
-      this.db.delete(posts).where(inArray(posts.uri, postsToDelete));
+      this.db.delete(postsSchema).where(inArray(postsSchema.uri, postsToDelete));
     }
   }
-  async handleEvent(evt: RepoEvent) {
-    if (!isCommit(evt)) return;
-    const ops = await getOpsByType(evt);
-
-    for (const like of ops.likes.creates) {
+  async handleEvent(evt: JetstreamEvent) {
+    const ops = getOpsByType(evt);
+    if (ops?.like?.create) {
+      const like = ops.like.create;
       modifyCount(like.record.subject, 1, "likes", this.posts);
     }
 
-    for (const repost of ops.reposts.creates) {
+    if (ops?.repost?.create) {
+      const repost = ops.repost?.create;
       modifyCount(repost.record.subject, 1, "reposts", this.posts);
     }
 
-    for (const post of ops.posts.creates) {
-      if (!hasLanguage(post.record, "English")) {
-        continue;
+    if (ops?.post?.create) {
+      const post = ops.post.create;
+      if (hasLanguage(post.record, "English")) {
+        return;
       }
       const replies = post.record.reply?.root;
       if (replies) {
         modifyCount({ ...replies, locale: "en" }, 1, "replies", this.posts);
-        continue;
-      }
-      if (post.record.embed?.$type === repostType) {
+      } else if (post.record.embed?.$type === repostType) {
         const quoterepost = (post.record.embed as AppBskyEmbedRecord.Main).record;
         modifyCount({ ...quoterepost, locale: "en" }, 1, "quotereposts", this.posts);
+      } else {
+        modifyCount({ ...post, locale: "en" }, 0, "quotereposts", this.posts);
       }
-      modifyCount({ ...post, locale: "en" }, 0, "quotereposts", this.posts);
     }
-
-    for (const post of ops.posts.deletes) {
+    if (ops?.post?.delete) {
+      const post = ops?.post?.delete;
       this.postsToDelete.push(post.uri);
     }
     await this.updateDb();
