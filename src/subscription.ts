@@ -37,7 +37,7 @@ export class FirehoseSubscription extends JetstreamSubscriptionBase {
 
   handleExit() {
     const exit = () => {
-      logger.warn("Service shutting down, saving queued records to database.");
+      logger.warn(`Service shutting down, saving ${this.posts.length} queued records to database.`);
       this.updateDb().then(() => process.exit(0));
     };
     process.on("SIGINT", exit);
