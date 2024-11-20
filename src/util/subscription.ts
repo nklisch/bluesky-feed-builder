@@ -1,30 +1,34 @@
-import { Subscription } from "@atproto/xrpc-server";
-import { cborToLexRecord, readCar } from "@atproto/repo";
 import { BlobRef } from "@atproto/lexicon";
 import { ids, lexicons } from "../lexicons/lexicons";
 import { Record as PostRecord } from "../lexicons/types/app/bsky/feed/post";
 import { Record as RepostRecord } from "../lexicons/types/app/bsky/feed/repost";
 import { Record as LikeRecord } from "../lexicons/types/app/bsky/feed/like";
 import { Record as FollowRecord } from "../lexicons/types/app/bsky/graph/follow";
-import { Commit, isCommit, OutputSchema as RepoEvent } from "../lexicons/types/com/atproto/sync/subscribeRepos";
 import { Database } from "../db/index";
 import { subscriptionStates } from "../db/schema";
 import { eq } from "drizzle-orm";
-
-export abstract class FirehoseSubscriptionBase {
-  public sub: Subscription<RepoEvent>;
+import { isJetstreamEvent, JetstreamEvent, JetstreamSubscription } from "../jetstream/jetstreamSubscription";
+export abstract class JetstreamSubscriptionBase {
+  public sub: JetstreamSubscription;
 
   constructor(
     public db: Database,
     public service: string,
   ) {
-    this.sub = new Subscription({
+    this.sub = new JetstreamSubscription({
       service: service,
-      method: ids.ComAtprotoSyncSubscribeRepos,
-      getParams: () => this.getCursor(),
+      method: "subscribe",
+      getParams: async () => {
+        const params = {
+          ...(await this.getCursor()),
+          wantedCollections: [ids.AppBskyFeedLike, ids.AppBskyFeedRepost, ids.AppBskyFeedPost, ids.AppBskyFeedPost],
+          maxMessageSizeBytes: 102400,
+        };
+        return params;
+      },
       validate: (value: unknown) => {
         try {
-          return lexicons.assertValidXrpcMessage<RepoEvent>(ids.ComAtprotoSyncSubscribeRepos, value);
+          return isJetstreamEvent(value) ? value : undefined;
         } catch (err) {
           logger.error(err, "repo subscription skipped invalid message");
         }
@@ -32,7 +36,7 @@ export abstract class FirehoseSubscriptionBase {
     });
   }
 
-  abstract handleEvent(evt: RepoEvent): Promise<void>;
+  abstract handleEvent(evt: JetstreamEvent): Promise<void>;
 
   async run(subscriptionReconnectDelay: number) {
     try {
@@ -43,8 +47,8 @@ export abstract class FirehoseSubscriptionBase {
           logger.error(err, "repo subscription could not handle message");
         }
         // update stored cursor every 20 events or so
-        if (isCommit(evt) && evt.seq % 20 === 0) {
-          await this.updateCursor(evt.seq);
+        if (isJetstreamEvent(evt) && evt.time_us % 20 === 0) {
+          await this.updateCursor(evt.time_us);
         }
       }
     } catch (err) {
@@ -73,65 +77,51 @@ export abstract class FirehoseSubscriptionBase {
   }
 }
 
-export const getOpsByType = async (evt: Commit): Promise<OperationsByType> => {
-  const car = await readCar(evt.blocks);
-  const opsByType: OperationsByType = {
-    posts: { creates: [], deletes: [] },
-    reposts: { creates: [], deletes: [] },
-    likes: { creates: [], deletes: [] },
-    follows: { creates: [], deletes: [] },
-  };
+export const getOpsByType = (evt: JetstreamEvent): OperationsByType => {
+  const uri = `at://${evt.did}/${evt.commit.rev}`;
+  const commit = evt.commit;
+  const collection = commit.collection;
+  const cid = commit.cid;
+  if (commit.operation === "update") return {}; // updates not supported yet
 
-  for (const op of evt.ops) {
-    const uri = `at://${evt.repo}/${op.path}`;
-    const [collection] = op.path.split("/");
-
-    if (op.action === "update") continue; // updates not supported yet
-
-    if (op.action === "create") {
-      if (!op.cid) continue;
-      const recordBytes = car.blocks.get(op.cid);
-      if (!recordBytes) continue;
-      const record = cborToLexRecord(recordBytes);
-      const create = { uri, cid: op.cid.toString(), author: evt.repo };
-      if (collection === ids.AppBskyFeedPost && isPost(record)) {
-        opsByType.posts.creates.push({ record, ...create });
-      } else if (collection === ids.AppBskyFeedRepost && isRepost(record)) {
-        opsByType.reposts.creates.push({ record, ...create });
-      } else if (collection === ids.AppBskyFeedLike && isLike(record)) {
-        opsByType.likes.creates.push({ record, ...create });
-      } else if (collection === ids.AppBskyGraphFollow && isFollow(record)) {
-        opsByType.follows.creates.push({ record, ...create });
-      }
-    }
-
-    if (op.action === "delete") {
-      const cid = op.cid?.toString();
-      if (collection === ids.AppBskyFeedPost) {
-        opsByType.posts.deletes.push({ uri, cid });
-      } else if (collection === ids.AppBskyFeedRepost) {
-        opsByType.reposts.deletes.push({ uri, cid });
-      } else if (collection === ids.AppBskyFeedLike) {
-        opsByType.likes.deletes.push({ uri, cid });
-      } else if (collection === ids.AppBskyGraphFollow) {
-        opsByType.follows.deletes.push({ uri, cid });
-      }
+  if (commit.operation === "create") {
+    const create = { uri, cid: commit.cid.toString(), author: evt.did };
+    const record = commit.record;
+    if (commit.collection === ids.AppBskyFeedPost && isPost(record)) {
+      return { post: { create: { ...create, record } } };
+    } else if (commit.collection === ids.AppBskyFeedRepost && isRepost(record)) {
+      return { repost: { create: { ...create, record } } };
+    } else if (commit.collection === ids.AppBskyFeedLike && isLike(record)) {
+      return { like: { create: { ...create, record } } };
+    } else if (commit.collection === ids.AppBskyGraphFollow && isFollow(record)) {
+      return { follow: { create: { ...create, record } } };
     }
   }
 
-  return opsByType;
+  if (commit.operation === "delete") {
+    if (collection === ids.AppBskyFeedPost) {
+      return { post: { delete: { uri, cid } } };
+    } else if (collection === ids.AppBskyFeedRepost) {
+      return { repost: { delete: { uri, cid } } };
+    } else if (collection === ids.AppBskyFeedLike) {
+      return { like: { delete: { uri, cid } } };
+    } else if (collection === ids.AppBskyGraphFollow) {
+      return { follow: { delete: { uri, cid } } };
+    }
+  }
+  return {};
 };
 
 export type OperationsByType = {
-  posts: Operations<PostRecord>;
-  reposts: Operations<RepostRecord>;
-  likes: Operations<LikeRecord>;
-  follows: Operations<FollowRecord>;
+  post?: Operations<PostRecord>;
+  repost?: Operations<RepostRecord>;
+  like?: Operations<LikeRecord>;
+  follow?: Operations<FollowRecord>;
 };
 
 export type Operations<T = Record<string, unknown>> = {
-  creates: CreateOp<T>[];
-  deletes: DeleteOp[];
+  create?: CreateOp<T>;
+  delete?: DeleteOp;
 };
 
 export type CreateOp<T> = {
